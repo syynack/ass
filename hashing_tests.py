@@ -16,10 +16,7 @@ class GenerateHash(object):
             0x38493843,
             0x73829211,
             0x48902384,
-            0x83703979,
-            0x56382990,
-            0x47384039,
-            0x09300021
+            0x83703979
         ]
 
 
@@ -46,36 +43,41 @@ class GenerateHash(object):
 
 
     def _shift_rows(self, chunk, bits):
-        return ((chunk << bits) | (chunk >> (64 - bits))) & 0xffffffff
+        return ((chunk << bits) | (chunk >> (16 - bits))) & 0xffffffff
 
 
     def _process_chunk(self, chunk):
         assert len(chunk) == 64
-        chunk = self._shift_rows(int(chunk), self.shift_bits)
+        chunks = []
 
-        chunks = struct.pack('>Q', chunk)
-        chunks = [ord(chunk) for chunk in chunks]
+        for i in range(0, 64, 8):
+            chunks.append(self._shift_rows(int(chunk[i:i + 8]), 3))
 
-        matrix = [None] * 128
+        matrix = [None] * 64
 
         for i in range(8):
-            matrix[i] = chunks[i]
+            matrix[i] = self._shift_rows(chunks[i], 1)
 
-        for i in range(8, 128):
-            matrix[i] = int(str(self._shift_rows((matrix[i-8] | matrix[i-1]) ^ (matrix[i-3] & matrix[i-5]), 1))[:2])
+        for i in range(8, 64):
+            matrix[i] = self._shift_rows(matrix[i - 8] + matrix[i - 2] + matrix[i - 5], 1)
 
-        d_1 = self.digest_variables[0]
-        d_2 = self.digest_variables[1]
-        d_3 = self.digest_variables[2]
-        d_4 = self.digest_variables[3]
-        d_5 = self.digest_variables[4]
-        d_6 = self.digest_variables[5]
-        d_7 = self.digest_variables[6]
-        d_8 = self.digest_variables[7]
+        candidate = ''
 
-        for i in range(128):
-            # mod stuff
+        for item in matrix:
+            if 0 <= int(str(item)[:2]) <= 19:
+                candidate_chunk = (item ^ self.digest_variables[0]) & 0xff
+            elif 20 <= int(str(item)[:2]) <= 39:
+                candidate_chunk = (item ^ self.digest_variables[1]) & 0xff
+            elif 40 <= int(str(item)[:2]) <= 59:
+                candidate_chunk = (item ^ self.digest_variables[2]) & 0xff
+            elif 60 <= int(str(item)[:2]) <= 79:
+                candidate_chunk = (item ^ self.digest_variables[3]) & 0xff
+            elif 80 <= int(str(item)[:2]) <= 99:
+                candidate_chunk = (item ^ self.digest_variables[4]) & 0xff
 
+            candidate = candidate + str(candidate_chunk)
+
+        return format(int(candidate[:64]), 'x')
 
 
     def _gen_key(self):
@@ -84,6 +86,8 @@ class GenerateHash(object):
             chunk = self.password[chunk:chunk + 64]
 
             self.key = self.key + self._process_chunk(chunk)
+
+        print self.key
 
 
     def hexdigest(self):
@@ -98,9 +102,8 @@ def main(password):
     '''
 
     password = str(password)
-
     test_hash = GenerateHash(password)
-    print test_hash.hexdigest()
+    test_hash.hexdigest()
 
 
 if __name__ == "__main__":
