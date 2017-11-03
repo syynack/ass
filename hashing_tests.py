@@ -9,7 +9,7 @@ class GenerateHash(object):
 
     def __init__(self, password):
         self.password = password
-        self.key_length = 1024
+        self.key_length = 512
         self.key = ''
         self.digest_variables = [
             0x92849382,
@@ -20,34 +20,41 @@ class GenerateHash(object):
         ]
 
 
+    def _shift_rows(self, chunk, bits):
+        return ((chunk << bits) | (chunk >> (16 - bits))) & 0xffffffff
+
+
     def _convert_password_to_int(self):
         converted_password = ''
 
         for character in self.password:
             converted_password = converted_password + str(ord(character))
 
-        self.password = converted_password
+        self.password = int(converted_password)
         self._pad_password()
+        return self
 
 
     def _pad_password(self):
-        padded_password = ''
-        password = textwrap.wrap(self.password, 8)
+        password = str(self.password)
 
-        while len(padded_password) < (self.key_length * 2):
-            for chunk in password:
-                padded_password = padded_password + str(int(chunk) & 0xffffffff)
+        while len(password) < (self.key_length * 2):
+            first_half, second_half = int(password[:len(password)/2]), int(password[len(password)/2:])
+            new_value = str((first_half & second_half) ^ int(password))
+            password = password + new_value
 
-        self.password = padded_password[:(self.key_length * 2)]
-        self._gen_key()
+            if (str(self.password) in password) and (len(password) < self.key_length / 4):
+                password = password.replace(str(self.password), '')
 
-
-    def _shift_rows(self, chunk, bits):
-        return ((chunk << bits) | (chunk >> (16 - bits))) & 0xffffffff
+        self.password = password[:(self.key_length * 2)]
+        return self
 
 
     def _process_chunk(self, chunk):
         assert len(chunk) == 64
+
+        #print chunk
+
         chunks = []
 
         for i in range(0, 64, 8):
@@ -59,9 +66,11 @@ class GenerateHash(object):
             matrix[i] = self._shift_rows(chunks[i], 1)
 
         for i in range(8, 64):
-            matrix[i] = self._shift_rows(matrix[i - 8] + matrix[i - 2] + matrix[i - 5], 1)
+            matrix[i] = self._shift_rows(matrix[i - 8] + matrix[i - 2] + matrix[i - 5], 8)
 
         candidate = ''
+
+        #print matrix
 
         for item in matrix:
             if 0 <= int(str(item)[:2]) <= 19:
@@ -77,21 +86,26 @@ class GenerateHash(object):
 
             candidate = candidate + str(candidate_chunk)
 
+        #print format(int(candidate[-64:]), 'x')
+
         return format(int(candidate[:64]), 'x')
 
 
     def _gen_key(self):
+        self._convert_password_to_int()
+
         for chunk in range(0, self.key_length, 64):
-            self.shift_bits = 1
             chunk = self.password[chunk:chunk + 64]
+
+            #print chunk
 
             self.key = self.key + self._process_chunk(chunk)
 
-        print self.key
+        return self.key
 
 
     def hexdigest(self):
-        self._convert_password_to_int()
+        return self._gen_key()
 
 
 def main(password):
@@ -103,7 +117,7 @@ def main(password):
 
     password = str(password)
     test_hash = GenerateHash(password)
-    test_hash.hexdigest()
+    print test_hash.hexdigest()
 
 
 if __name__ == "__main__":
