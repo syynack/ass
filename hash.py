@@ -47,7 +47,7 @@ class GenerateHash(object):
         function adds extra padding to the password so that it can be processed in
         chunks.
         '''
-        
+
         password = str(self.password)
 
         while len(password) < (self.key_length * 2):
