@@ -83,15 +83,15 @@ class GenerateHash(object):
 
         for item in matrix:
             if 0 <= int(str(item)[:2]) <= 19:
-                candidate_chunk = (item ^ self.digest_variables[0]) & 0xffff
+                candidate_chunk = (item & self.digest_variables[0]) & 0xffff
             elif 20 <= int(str(item)[:2]) <= 39:
-                candidate_chunk = (item ^ self.digest_variables[1]) & 0xffff
+                candidate_chunk = (item & self.digest_variables[1]) & 0xffff
             elif 40 <= int(str(item)[:2]) <= 59:
-                candidate_chunk = (item ^ self.digest_variables[2]) & 0xffff
+                candidate_chunk = (item & self.digest_variables[2]) & 0xffff
             elif 60 <= int(str(item)[:2]) <= 79:
-                candidate_chunk = (item ^ self.digest_variables[3]) & 0xffff
+                candidate_chunk = (item & self.digest_variables[3]) & 0xffff
             elif 80 <= int(str(item)[:2]) <= 99:
-                candidate_chunk = (item ^ self.digest_variables[4]) & 0xffff
+                candidate_chunk = (item & self.digest_variables[4]) & 0xffff
 
             candidate_chunk = candidate_chunk & 0x3E
             candidate = candidate + str(candidate_chunk)
@@ -117,9 +117,9 @@ class GenerateHash(object):
 
 
 @click.command(help = 'Generate a hash key based on a password.')
-@click.option('-k', '--key-length', type=click.Choice(['256', '512', '1024', '2048', '4096']))
 @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
-def main(key_length, password):
+@click.option('-k', '--key-length', default='512', type=click.Choice(['256', '512', '1024', '2048', '4096']))
+def main(password, key_length):
     if not password:
         print 'ERROR: No password entered!'
         sys.exit(1)
