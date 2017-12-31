@@ -6,44 +6,45 @@ import textwrap
 import sys
 
 class Cipher():
-    def __init__(self, key, key_length, plaintext_file = None):
+    def __init__(self, key, key_length, target_file = None):
         self.key = key
         self.key_length = key_length
         self.encryption_rounds = 0
         '''
         Sboxes generated with:
         import os
-        matrix = [[], [], [], [], [], [], [], []]
+        matrix = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []]
 
         for item in matrix:
-            for i in range(8):
+            for i in range(16):
                 item.append(os.urandom(1))
         '''
         self.sbox_0 = [
-            ['\x1c', '\x05', 'O', ']', '\xae', 'C', 'y', '\xaf'],
-            ['q', '9', '\x04', '\xff', '\xd5', '\xbe', '\t', '\x9a'],
-            ['\x8d', '\xe9', '\xb9', '\xe4', '\xac', 'i', '\xe8', '\x15'],
-            ['M', "'", '_', '\xd1', 't', '\xe9', '\xf1', '\x04'],
-            ['\x81', 'g', '\xef', '\x8c', '\x9d', '\xc2', '\x8b', '['],
-            ['$', '\xca', '\xfc', '\xae', '\xfc', 'T', '\xba', '!'],
-            ['3', '\x92', '\x01', '\x0e', ';', '\xb6', '\xc4', '8'],
-            ['k', '\xec', '\xd1', '\xa1', '\xc0', '\x88', 'O', '\xfc']
-        ]
-        self.sbox_1 = [
-            ['\x88', 'D', '\x0f', ' ', 'X', '\xe7', '\x9f', '\x03'],
-            ['\xe5', '\xd8', '\xe4', '\xce', '\xce', '3', 'M', '\x9c'],
-            ['\x1f', '\x96', ']', '\xe7', '\xa5', '\x80', 'E', '\xbc'],
-            ['F', '\xf0', '\xcd', '\x93', '\xb0', '}', '9', '['],
-            ['l', '\x96', '=', '\xf4', 'a', 'k', '\x9e', 'Q'],
-            ['\x94', '\xb4', '.', ')', 'Y', 'v', '\xab', 'u'],
-            ['{', '\xce', '"', '\xa2', '\x08', '\xe9', '\xb0', '\x95'],
-            ['*', '\xbe', '\x11', 'R', '\x02', ')', '\xcc', 'b']
+            ['\x00', '\x83', '\x04', '\x87', '\x08', '\x8b', '\x0c', '\x8f', '\x10', '\x93', '\x14', '\x97', '\x18', '\x9b', '\x1c', '\x9f'],
+            [' ', '\xa3', '$', '\xa7', '(', '\xab', ',', '\xaf', '0', '\xb3', '4', '\xb7', '8', '\xbb', '<', '\xbf'],
+            ['@', '\xc3', 'D', '\xc7', 'H', '\xcb', 'L', '\xcf', 'P', '\xd3', 'T', '\xd7', 'X', '\xdb', '\\', '\xdf'],
+            ['`', '\xe3', 'd', '\xe7', 'h', '\xeb', 'l', '\xef', 'p', '\xf3', 't', '\xf7', 'x', '\xfb', '|', '\xff'],
+            ['\x80', '\x03', '\x84', '\x07', '\x88', '\x0b', '\x8c', '\x0f', '\x90', '\x13', '\x94', '\x17', '\x98', '\x1b', '\x9c', '\x1f'],
+            ['\xa0', '#', '\xa4', "'", '\xa8', '+', '\xac', '/', '\xb0', '3', '\xb4', '7', '\xb8', ';', '\xbc', '?'],
+            ['\xc0', 'C', '\xc4', 'G', '\xc8', 'K', '\xcc', 'O', '\xd0', 'S', '\xd4', 'W', '\xd8', '[', '\xdc', '_'],
+            ['\xe0', 'c', '\xe4', 'g', '\xe8', 'k', '\xec', 'o', '\xf0', 's', '\xf4', 'w', '\xf8', '{', '\xfc', '\x7f'],
+            ['\x81', '\x02', '\x85', '\x06', '\x89', '\n', '\x8d', '\x0e', '\x91', '\x12', '\x95', '\x16', '\x99', '\x1a', '\x9d', '\x1e'],
+            ['\xa1', '"', '\xa5', '&', '\xa9', '*', '\xad', '.', '\xb1', '2', '\xb5', '6', '\xb9', ':', '\xbd', '>'],
+            ['\xc1', 'B', '\xc5', 'F', '\xc9', 'J', '\xcd', 'N', '\xd1', 'R', '\xd5', 'V', '\xd9', 'Z', '\xdd', '^'],
+            ['\xe1', 'b', '\xe5', 'f', '\xe9', 'j', '\xed', 'n', '\xf1', 'r', '\xf5', 'v', '\xf9', 'z', '\xfd', '~'],
+            ['\x01', '\x82', '\x05', '\x86', '\t', '\x8a', '\r', '\x8e', '\x11', '\x92', '\x15', '\x96', '\x19', '\x9a', '\x1d', '\x9e'],
+            ['!', '\xa2', '%', '\xa6', ')', '\xaa', '-', '\xae', '1', '\xb2', '5', '\xb6', '9', '\xba', '=', '\xbe'],
+            ['A', '\xc2', 'E', '\xc6', 'I', '\xca', 'M', '\xce', 'Q', '\xd2', 'U', '\xd6', 'Y', '\xda', ']', '\xde'],
+            ['a', '\xe2', 'e', '\xe6', 'i', '\xea', 'm', '\xee', 'q', '\xf2', 'u', '\xf6', 'y', '\xfa', '}', '\xfe']
         ]
         self.round_keys = []
-        self.plaintext_file = plaintext_file
+        self.target_file = target_file
+        self.ciphertext_file = self.target_file + '.encrypted'
+        self.plaintext_file = self.target_file.split('.encrypted')[0]
         self.xored_chunks = []
         self.plaintext_contents = ''
-        self.target_file = self.plaintext_file + '.enc' if self.plaintext_file is not None else None
+        self.ciphertext_contents = ''
+        self.ciphertext_chunks = []
         self.binary_format = '{0:0{1}b}'
 
 
@@ -56,10 +57,56 @@ class Cipher():
             self.encryption_rounds = 32
 
 
-    def _write_encrypted_data_to_file(self):
-        with open(self.target_file, 'wb') as target_file:
-            for chunk in self.xored_chunks:
-                target_file.write(chr(int(chunk, 2)))
+    def _write_ciphertext_to_file(self):
+        with open(self.ciphertext_file, 'wb') as target_file:
+            target_file.write(self.ciphertext_contents)
+
+
+    def _read_ciphertext_from_file(self):
+        with open(self.ciphertext_file, 'rb') as target_file:
+            byte = target_file.read(1)
+            while byte != "":
+                self.ciphertext_chunks.append(byte)
+
+                byte = target_file.read(1)
+
+
+    def _substitute_ciphertext_chunks(self):
+        for index_0, chunk in enumerate(self.ciphertext_chunks):
+            for sublist in self.sbox_0:
+                if chunk in sublist:
+                    index_1 = self.sbox_0.index(sublist)
+                    index_2 = sublist.index(chunk)
+
+            #print "{0:04b}".format(index_1) + "{0:04b}".format(index_2), index_1, index_2
+            self.ciphertext_chunks[index_0] = "{0:04b}".format(index_1) + "{0:04b}".format(index_2)
+
+
+    def _decrypt_xored_chunks(self):
+        ciphertext_chunks = [self.ciphertext_chunks[x:x+8] for x in xrange(0, len(self.ciphertext_chunks), 8)]
+        for chunk in ciphertext_chunks:
+            print "DECRYPT - PRE XOR CIPHERTEXT BLOCK: {}".format(chunk)
+
+        for index_0, chunk_list in enumerate(ciphertext_chunks):
+            for index_1, chunk in enumerate(chunk_list):
+                for key in self.round_keys[::-1]:
+                    ciphertext_chunks[index_0][index_1] = self.binary_format.format(int(chunk, 2) ^ int(key, 2), 8)
+
+        for chunk in ciphertext_chunks:
+            print "DECRYPT - POST XOR PLAINTEXT BLOCK: {}".format(chunk)
+
+
+
+
+        '''
+        for item in self.ciphertext_chunks[::-1]:
+            for index, key in enumerate(self.round_keys):
+                item = self.binary_format.format(int(item, 2) ^ int(key, 2), 8)
+
+            decrypted_chunks.append(item)
+        '''
+
+        #print decrypted_chunks
 
 
     def _get_starting_keys(self):
@@ -89,12 +136,27 @@ class Cipher():
             self.plaintext_contents = ptf.read()
 
 
+    def _substitute_xored_chunk(self, chunk):
+        assert len(chunk) == 8
+        assert isinstance(chunk, str)
+
+        first_half, second_half = int(chunk[:4], 2), int(chunk[4:], 2)
+        substition = self.sbox_0[first_half][second_half]
+
+        #print chunk, first_half, second_half
+
+        self.ciphertext_contents = self.ciphertext_contents + substition
+
+
     def _xor_chunk_blocks(self, chunk):
         chunk_block = textwrap.wrap(chunk, 8)
+        print "ENCRYPT - PRE XOR PLAINTEXT BLOCK: {}".format(chunk_block)
 
         for index, item in enumerate(chunk_block):
             for key in self.round_keys:
                 chunk_block[index] = self.binary_format.format(int(chunk_block[index], 2) ^ int(key, 2), 8)
+
+        print "ENCRYPT - POST XOR CIPHERTEXT BLOCK: {}".format(chunk_block)
 
         return chunk_block
 
@@ -129,21 +191,33 @@ class Cipher():
         self._calculate_rounds()
         self._get_starting_keys()
         self._process_plaintext()
-        self._write_encrypted_data_to_file()
+
+        for chunk in self.xored_chunks:
+            self._substitute_xored_chunk(chunk)
+
+        self._write_ciphertext_to_file()
 
 
-    def _decrypt(self):
-        pass
+    def _start_decryption_process(self):
+        self._convert_plaintext_to_binary()
+        self._calculate_rounds()
+        self._get_starting_keys()
+
+        self._read_ciphertext_from_file()
+        self._substitute_ciphertext_chunks()
+        self._decrypt_xored_chunks()
 
 
 def main():
     cipher = Cipher(
         key = 'a1e04e496c42c56a4589b23189327d2db63dce050bc0c0e5226903f15f8a4a6b19f1dbdbbe33fb62d5456c45e54162d51047114bdc57339edf8de7c8ad972e5f6edae55d37423d85f3b0712a91f1eb618e6f323b095d7fd0a01ebc56f82ece0deadb035e',
         key_length = 128,
-        plaintext_file = 'test_ptf.txt'
+        target_file = 'test_ptf.txt'
     )
 
     cipher._start_encryption_process()
+    print ''
+    cipher._start_decryption_process()
 
 
 if __name__ == "__main__":
