@@ -41,8 +41,10 @@ class Cipher():
         ]
         self.round_keys = []
         self.plaintext_file = plaintext_file
+        self.xored_chunks = []
         self.plaintext_contents = ''
         self.target_file = self.plaintext_file + '.enc' if self.plaintext_file is not None else None
+        self.binary_format = '{0:0{1}b}'
 
 
     def _calculate_rounds(self):
@@ -54,6 +56,12 @@ class Cipher():
             self.encryption_rounds = 32
 
 
+    def _write_encrypted_data_to_file(self):
+        with open(self.target_file, 'wb') as target_file:
+            for chunk in self.xored_chunks:
+                target_file.write(chr(int(chunk, 2)))
+
+
     def _get_starting_keys(self):
         key = ''.join(format(ord(i), 'b') for i in self.key)
         split_key = textwrap.wrap(key, 8)
@@ -62,18 +70,18 @@ class Cipher():
             for i in range(0, len(split_key), 2):
                 k1 = split_key[i-1]
                 k2 = split_key[i]
-                split_key[i-1] = '{0:0{1}b}'.format(int(k1, 2) ^ int(k2, 2), 8)
+                split_key[i-1] = self.binary_format.format(int(k1, 2) ^ int(k2, 2), 8)
 
             while len(split_key) % 4 != 0:
-                split_key[0] = '{0:0{1}b}'.format(int(split_key[0], 2) ^ int(split_key[1], 2), 8)
+                split_key[0] = self.binary_format.format(int(split_key[0], 2) ^ int(split_key[1], 2), 8)
                 del split_key[1]
 
             split_key = split_key[1::2]
 
-        self.round_keys + (split_key + ([None] * (self.encryption_rounds - 4)))
+        self.round_keys = self.round_keys + (split_key + ([None] * (self.encryption_rounds - 4)))
 
         for i in range(4, len(self.round_keys)):
-            self.round_keys[i] = '{0:0{1}b}'.format(int(self.round_keys[i - 4], 2) ^ int(self.round_keys[i - 1], 2), 8)
+            self.round_keys[i] = self.binary_format.format(int(self.round_keys[i - 4], 2) ^ int(self.round_keys[i - 1], 2), 8)
 
 
     def _convert_plaintext_to_binary(self):
@@ -81,12 +89,47 @@ class Cipher():
             self.plaintext_contents = ptf.read()
 
 
-    def _encrypt(self):
+    def _xor_chunk_blocks(self, chunk):
+        chunk_block = textwrap.wrap(chunk, 8)
+
+        for index, item in enumerate(chunk_block):
+            for key in self.round_keys:
+                chunk_block[index] = self.binary_format.format(int(chunk_block[index], 2) ^ int(key, 2), 8)
+
+        return chunk_block
+
+
+    def _process_plaintext_chunks(self, chunk):
+        xored_chunk = self._xor_chunk_blocks(chunk)
+
+        for subchunk in xored_chunk:
+            self.xored_chunks.append(subchunk)
+
+
+    def _process_plaintext(self):
+        bin_plaintext = ''
+        chunks = []
+
+        for char in self.plaintext_contents:
+            bin_plaintext = bin_plaintext + str(format(ord(char), 'b'))
+
+        for x in range(0, len(bin_plaintext), 64):
+            chunks.append(bin_plaintext[x:x + 64])
+
+        for chunk in chunks:
+            self._process_plaintext_chunks(chunk)
+
+
+    def _start_encryption_process(self):
         if self.plaintext_file is None:
             print "[!] Target file not specified. Exiting."
             sys.exit(1)
 
         self._convert_plaintext_to_binary()
+        self._calculate_rounds()
+        self._get_starting_keys()
+        self._process_plaintext()
+        self._write_encrypted_data_to_file()
 
 
     def _decrypt(self):
@@ -100,8 +143,7 @@ def main():
         plaintext_file = 'test_ptf.txt'
     )
 
-    cipher._encrypt()
-
+    cipher._start_encryption_process()
 
 
 if __name__ == "__main__":
