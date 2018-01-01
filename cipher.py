@@ -45,6 +45,7 @@ class Cipher():
         self.plaintext_contents = ''
         self.ciphertext_contents = ''
         self.ciphertext_chunks = []
+        self.decrypted_plaintext = ''
         self.binary_format = '{0:0{1}b}'
 
 
@@ -71,6 +72,11 @@ class Cipher():
                 byte = target_file.read(1)
 
 
+    def _write_plaintext_to_file(self):
+        with open(self.plaintext_file, 'w') as target_file:
+            target_file.write(self.decrypted_plaintext)
+
+
     def _substitute_ciphertext_chunks(self):
         for index_0, chunk in enumerate(self.ciphertext_chunks):
             for sublist in self.sbox_0:
@@ -78,35 +84,31 @@ class Cipher():
                     index_1 = self.sbox_0.index(sublist)
                     index_2 = sublist.index(chunk)
 
-            #print "{0:04b}".format(index_1) + "{0:04b}".format(index_2), index_1, index_2
             self.ciphertext_chunks[index_0] = "{0:04b}".format(index_1) + "{0:04b}".format(index_2)
 
 
     def _decrypt_xored_chunks(self):
         ciphertext_chunks = [self.ciphertext_chunks[x:x+8] for x in xrange(0, len(self.ciphertext_chunks), 8)]
-        for chunk in ciphertext_chunks:
-            print "DECRYPT - PRE XOR CIPHERTEXT BLOCK: {}".format(chunk)
 
         for index_0, chunk_list in enumerate(ciphertext_chunks):
             for index_1, chunk in enumerate(chunk_list):
                 for key in self.round_keys[::-1]:
                     ciphertext_chunks[index_0][index_1] = self.binary_format.format(int(chunk, 2) ^ int(key, 2), 8)
 
-        for chunk in ciphertext_chunks:
-            print "DECRYPT - POST XOR PLAINTEXT BLOCK: {}".format(chunk)
+        for index, sublist in enumerate(ciphertext_chunks):
+            ciphertext_chunks[index] = ''.join(sublist)
+
+        self.ciphertext_chunks = ''.join(ciphertext_chunks)
 
 
+    def _process_ciphertext_chunks(self):
+        joined_ciphertext = ''.join(self.ciphertext_chunks)
+        plaintext = ""
 
+        for i in range(0, len(joined_ciphertext), 8):
+            plaintext = plaintext + chr(int(joined_ciphertext[i:i+8], 2))
 
-        '''
-        for item in self.ciphertext_chunks[::-1]:
-            for index, key in enumerate(self.round_keys):
-                item = self.binary_format.format(int(item, 2) ^ int(key, 2), 8)
-
-            decrypted_chunks.append(item)
-        '''
-
-        #print decrypted_chunks
+        self.decrypted_plaintext = plaintext
 
 
     def _get_starting_keys(self):
@@ -142,21 +144,15 @@ class Cipher():
 
         first_half, second_half = int(chunk[:4], 2), int(chunk[4:], 2)
         substition = self.sbox_0[first_half][second_half]
-
-        #print chunk, first_half, second_half
-
         self.ciphertext_contents = self.ciphertext_contents + substition
 
 
     def _xor_chunk_blocks(self, chunk):
         chunk_block = textwrap.wrap(chunk, 8)
-        print "ENCRYPT - PRE XOR PLAINTEXT BLOCK: {}".format(chunk_block)
 
         for index, item in enumerate(chunk_block):
             for key in self.round_keys:
                 chunk_block[index] = self.binary_format.format(int(chunk_block[index], 2) ^ int(key, 2), 8)
-
-        print "ENCRYPT - POST XOR CIPHERTEXT BLOCK: {}".format(chunk_block)
 
         return chunk_block
 
@@ -173,7 +169,9 @@ class Cipher():
         chunks = []
 
         for char in self.plaintext_contents:
-            bin_plaintext = bin_plaintext + str(format(ord(char), 'b'))
+            print char
+            print bin_plaintext
+            bin_plaintext = bin_plaintext + str(self.binary_format.format(ord(char), 8))
 
         for x in range(0, len(bin_plaintext), 64):
             chunks.append(bin_plaintext[x:x + 64])
@@ -199,13 +197,14 @@ class Cipher():
 
 
     def _start_decryption_process(self):
-        self._convert_plaintext_to_binary()
         self._calculate_rounds()
         self._get_starting_keys()
 
         self._read_ciphertext_from_file()
         self._substitute_ciphertext_chunks()
         self._decrypt_xored_chunks()
+        self._process_ciphertext_chunks()
+        self._write_plaintext_to_file()
 
 
 def main():
@@ -215,7 +214,7 @@ def main():
         target_file = 'test_ptf.txt'
     )
 
-    cipher._start_encryption_process()
+    #cipher._start_encryption_process()
     print ''
     cipher._start_decryption_process()
 
