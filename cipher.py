@@ -45,11 +45,17 @@ class Public():
                 k2 = split_key[i]
                 split_key[i-1] = BINARY_TEMPLATE.format(int(k1, 2) ^ int(k2, 2), 8)
 
+            del split_key[0]
+
+            '''
+            Was using this in a previous iteration, found out it wasn't needed. Keeping in anyway.
+
             while len(split_key) % 4 != 0:
                 split_key[0] = BINARY_TEMPLATE.format(int(split_key[0], 2) ^ int(split_key[1], 2), 8)
                 del split_key[1]
 
             split_key = split_key[1::2]
+            '''
 
         round_keys = round_keys + (split_key + ([None] * (encryption_rounds - 4)))
 
@@ -260,7 +266,7 @@ class Decrypt():
 
 
 @click.command(help = 'Encrypt a plaintext file.')
-@click.option('-t', '--target-file', default = '', help = 'Target plaintext or encrypted file.')
+@click.option('-f', '--target-file', default = '', help = 'Target plaintext or encrypted file.')
 @click.option('-k', '--key', default = '', help = 'Key.')
 @click.option('-l', '--key-length', default = 128, help = 'Key length.')
 def encrypt(target_file, key, key_length):
@@ -272,7 +278,7 @@ def encrypt(target_file, key, key_length):
 
 
 @click.command(help = 'Decrypt an encrypted file.')
-@click.option('-t', '--target-file', default = '', help = 'Target plaintext or encrypted file.')
+@click.option('-f', '--target-file', default = '', help = 'Target plaintext or encrypted file.')
 @click.option('-k', '--key', default = '', help = 'Key.')
 @click.option('-l', '--key-length', default = 128, help = 'Key length.')
 def decrypt(target_file, key, key_length):
