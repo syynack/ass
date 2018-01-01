@@ -1,0 +1,7 @@
+Block ciphers are one of the most popular forms of current cryptography.
+In difference to stream ciphers, block ciphers work most commonly by iterating over many “blocks” of a piece of plaintext and producing blocks of cipher text of an equal size.
+One key feature of a block cipher over a stream cipher, is the need to commonly add padding to a message. 
+For example, if the cipher is using a block size of a typical 64 bits, it is very rare that a plaintext message modulo 64 will be zero; there will often be some bits remaining that are not divisible by 64.
+The cipher therefore needs to padding to the last block of the plain text message so that it can be operated on as a 64 bit block.
+
+Within block ciphers there are many different forms of operations - this relates to the different ways in which the cipher can be applied to the block of plain text.

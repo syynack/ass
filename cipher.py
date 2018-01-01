@@ -100,14 +100,10 @@ class Encrypt():
         8 bit round key and places into xored_plaintext_chunks list.
         '''
 
-        chunk_block = textwrap.wrap(chunk, 8)
+        for key in self.round_keys:
+            chunk = BINARY_TEMPLATE.format(int(chunk, 2) ^ int(key, 2), 8)
 
-        for index, item in enumerate(chunk_block):
-            for key in self.round_keys:
-                chunk_block[index] = BINARY_TEMPLATE.format(int(chunk_block[index], 2) ^ int(key, 2), 8)
-
-        for subchunk in chunk_block:
-            self.xored_plaintext_chunks.append(subchunk)
+        self.xored_plaintext_chunks.append(chunk)
 
 
     def _add_initial_encryption(self):
@@ -117,13 +113,11 @@ class Encrypt():
         '''
 
         binary_plaintext = ""
-        chunks = []
 
         for char in self.plaintext_contents:
             binary_plaintext = binary_plaintext + str(BINARY_TEMPLATE.format(ord(char), 8))
 
-        for x in range(0, len(binary_plaintext), 64):
-            chunks.append(binary_plaintext[x:x + 64])
+        chunks = textwrap.wrap(binary_plaintext, 8)
 
         for chunk in chunks:
             self._xor_binary_plaintext_chunks(chunk)
